@@ -1,8 +1,11 @@
 import glob
 import os
 from pathlib import Path
-from conans import CMake, ConanFile, RunEnvironment, tools
-from conans.tools import SystemPackageTool
+
+from conan import ConanFile
+from conan.tools.cmake import CMakeToolchain, CMake
+from conan.tools.files import collect_libs, chdir, patch, mkdir, copy
+from conan.tools.scm import Git
 
 
 class ESMini(ConanFile):
@@ -29,33 +32,29 @@ class ESMini(ConanFile):
         "with_osi": True,
         "with_sumo": False,
     }
-    generators = "cmake"
+    generators = "CMakeToolchain", "CMakeDeps"
     build_policy = "missing"
     no_copy_source = False
-    requires = []
 
-    _patch_file = "patches/esmini_2_25_1.patch"
+    _patch_file = Path("patches") / "esmini_2_25_1.patch"
 
     _pkg_scenario_dir = "scenarios"
 
     exports_sources = [
         "CMakeLists.txt",
-        _patch_file,
+        str(_patch_file),
         f"{_pkg_scenario_dir}/*",
     ]
     _git_url = "https://github.com/esmini/esmini.git"
-    _git_dir = "esmini"
     _git_ref = "develop" if version == "latest" else f"v{version}"
     _sim_dir = "EnvironmentSimulator"
     _test_deps = [_sim_dir, "resources", "scripts"]
-    _test_dir = f"{_git_dir}/{_sim_dir}/Unittest/"
-    _lib_dir = f"{_git_dir}/{_sim_dir}/Libraries/"
-    _bin_dir = f"{_git_dir}/{_sim_dir}/Applications/"
-    _resources_dir = f"{_git_dir}/resources"
+    _test_dir = f"{_sim_dir}/Unittest/"
+    _lib_dir = f"{_sim_dir}/Libraries/"
+    _bin_dir = f"{_sim_dir}/Applications/"
+    _resources_dir = f"resources"
 
     _protobuf_dyn = True
-
-    _cmake = None
 
     def configure(self):
         if self.options.with_osg:
@@ -66,8 +65,8 @@ class ESMini(ConanFile):
             self.options["protobuf"].debug_suffix = False
 
     def source(self):
-        git = tools.Git(folder=self._git_dir)
-        git.clone(self._git_url, self._git_ref, shallow=True)
+        git = Git(self)
+        git.fetch_commit(self._git_url, self._git_ref)
 
     def system_requirements(self):
         pkg_names = None
@@ -79,65 +78,68 @@ class ESMini(ConanFile):
                 "libxinerama-dev",
             ]  # TODO: add all system requirements
         if pkg_names:
-            installer = SystemPackageTool()
-            for pkg in pkg_names:
-                installer.install([pkg])
+            from conan.tools.system.package_manager import Apt
+            apt = Apt(self)
+            apt.install(pkg_names, update=True, check=True)
 
     def requirements(self):
         if self.options.with_osi:
-            self.requires("protobuf/[~=3.15.5]", override=True)
+            self.requires("protobuf/3.15.8", override=True)
             self.requires("open-simulation-interface/3.3.1@cloe/stable")
 
-    def _configure_cmake(self):
-        if self._cmake:
-            return self._cmake
-        self._cmake = CMake(self)
-        self._cmake.definitions["CMAKE_PROJECT_SUBDIR"] = self._git_dir
-        self._cmake.definitions["CMAKE_PROJECT_VERSION"] = self.version
-        self._cmake.definitions["CMAKE_EXPORT_COMPILE_COMMANDS"] = True
-        self._cmake.definitions["BUILD_SHARED_LIBS"] = self.options.shared
-        self._cmake.definitions["USE_OSG"] = self.options.with_osg
-        self._cmake.definitions["USE_OSI"] = self.options.with_osi
-        self._cmake.definitions["USE_SUMO"] = self.options.with_sumo
-        self._cmake.definitions["USE_GTEST"] = self.options.test
-        self._cmake.definitions["DYN_PROTOBUF"] = self._protobuf_dyn
-        self._cmake.configure()
-        return self._cmake
+    def generate(self):
+        ext_osi = self.build_path / 'ext_osi'
+        mkdir(self, ext_osi)
+        copy(self, "*", src=self.dependencies["open-simulation-interface"].cpp_info.includedirs[0],
+             dst=ext_osi / 'include')
+        copy(self, "*", src=self.dependencies["open-simulation-interface"].cpp_info.libdirs[0],
+             dst=ext_osi / 'lib')
+        copy(self, "*", src=self.dependencies["protobuf"].cpp_info.includedirs[0],
+             dst=ext_osi / 'include')
+        copy(self, "*", src=self.dependencies["protobuf"].cpp_info.libdirs[0],
+             dst=ext_osi / 'lib')
+
+        tc = CMakeToolchain(self)
+        tc.cache_variables["CMAKE_PROJECT_VERSION"] = self.version
+        tc.cache_variables["CMAKE_EXPORT_COMPILE_COMMANDS"] = True
+        tc.cache_variables["BUILD_SHARED_LIBS"] = self.options.shared
+        tc.cache_variables["USE_OSG"] = self.options.with_osg
+        tc.cache_variables["USE_OSI"] = self.options.with_osi
+        tc.cache_variables["USE_SUMO"] = self.options.with_sumo
+        tc.cache_variables["USE_GTEST"] = self.options.test
+        tc.cache_variables["DYN_PROTOBUF"] = True
+        tc.cache_variables["CONAN_PROTOBUF_LIBDIR"] = self.dependencies["protobuf"].cpp_info.libdirs[0]
+        tc.cache_variables["CONAN_OSI_LIBDIR"] = self.dependencies["open-simulation-interface"].cpp_info.libdirs[0]
+        tc.cache_variables["CONAN_OPEN-SIMULATION-INTERFACE_ROOT"] = str(ext_osi)
+        tc.generate()
 
     def build(self):
-        trg_path = self._git_dir
+        trg_path = Path('.')
         patch_file = self._patch_file
         if not self.in_local_cache:
-            trg_path = self.source_folder + "/" + trg_path
-            patch_file = self.recipe_folder + "/" + patch_file
-        tools.patch(base_path=trg_path, patch_file=patch_file)
+           trg_path = Path(self.source_folder) / trg_path
+           patch_file = Path(self.recipe_folder) / patch_file
+        patch(self, base_path=trg_path, patch_file=patch_file)
 
-        cmake = self._configure_cmake()
-        cmake.build()
-        if self.options.test:
-            self._prepare_tests()
-            with tools.chdir(self._test_dir):
-                with tools.environment_append(RunEnvironment(self).vars):
-                    for test in glob.glob("*_test"):
-                        self.run(Path(test).resolve().as_posix())
-            self._cleanup_tests()
+        cmake = CMake(self)
+        if self.should_configure:
+            cmake.configure()
+        if self.should_build:
+            cmake.build()
+        if self.should_test:
+            test_dir = Path("EnvironmentSimulator") / "Unittest"
+            mkdir(self, test_dir / 'exec')
+            for test in glob.glob("*_test", root_dir=Path("EnvironmentSimulator") / "Unittest"):
+                self.run(Path('..') / test, run_environment=True, cwd=test_dir / 'exec')
 
-    def _prepare_tests(self):
-        for d in self._test_deps:
-            self.run(f"ln -sf {self.source_folder}/{self._git_dir}/{d}")
-
-    def _cleanup_tests(self):
-        for d in self._test_deps:
-            if os.path.islink(d):
-                self.run(f"rm -f {d}")
 
     def package(self):
-        cmake = self._configure_cmake()
+        cmake = CMake(self)
         cmake.install()
         self.copy(
             pattern="*.hpp",
             dst="include",
-            src=f"{self.source_folder}/{self._lib_dir}",
+            src=Path(self.source_folder) / self._lib_dir,
             keep_path=False,
         )
         self.copy(pattern="*.so", dst="lib", src=self._lib_dir, keep_path=False)
@@ -168,5 +170,5 @@ class ESMini(ConanFile):
         self.cpp_info.set_property("cmake_file_name", self.name)
         self.cpp_info.set_property("pkg_config_name", self.name)
 
-        self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.libs = collect_libs(self)
         self.runenv_info.define("ESMINI_XOSC_PATH", f"{self.package_folder}/{self._pkg_scenario_dir}/xosc")
