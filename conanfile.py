@@ -112,11 +112,11 @@ class Cloe(ConanFile):
         tc.cache_variables["CMAKE_EXPORT_COMPILE_COMMANDS"] = True
         tc.cache_variables["CMAKE_MODULE_PATH"] = self.source_folder + "/runtime/cmake"
         tc.cache_variables["FABLE_VERSION"] = self.version
-        tc.cache_variables["FABLE_VERSION_U32"] = version_u32
+        tc.cache_variables["FABLE_VERSION_U32"] = str(version_u32)
         tc.cache_variables["FABLE_ALLOW_COMMENTS"] = self.options.fable_allow_comments
         tc.cache_variables["CLOE_PROJECT_VERSION"] = self.version
         tc.cache_variables["CLOE_VERSION"] = self.version
-        tc.cache_variables["CLOE_VERSION_U32"] = version_u32
+        tc.cache_variables["CLOE_VERSION_U32"] = str(version_u32)
         tc.cache_variables["CLOE_ENGINE_WITH_SERVER"] = self.options.engine_server
         tc.cache_variables["CLOE_ENGINE_WITH_LRDB"] = self.options.engine_lrdb
         tc.generate()

@@ -1,5 +1,5 @@
 diff --git a/EnvironmentSimulator/CMakeLists.txt b/EnvironmentSimulator/CMakeLists.txt
-index 005d33e..7cb691d 100644
+index 005d33e2..7cb691df 100644
 --- a/EnvironmentSimulator/CMakeLists.txt
 +++ b/EnvironmentSimulator/CMakeLists.txt
 @@ -1,5 +1,5 @@
@@ -78,8 +78,79 @@ index 005d33e..7cb691d 100644
 
  # download SUMO
  set ( SUMO_PACKAGE_FILENAME "sumo.7z" )
+diff --git a/EnvironmentSimulator/Libraries/esminiLib/CMakeLists.txt b/EnvironmentSimulator/Libraries/esminiLib/CMakeLists.txt
+index a19cfc12..28efec1a 100644
+--- a/EnvironmentSimulator/Libraries/esminiLib/CMakeLists.txt
++++ b/EnvironmentSimulator/Libraries/esminiLib/CMakeLists.txt
+@@ -16,6 +16,7 @@ set ( SOURCES esminiLib.cpp ../../Modules/Controllers/vehicle.cpp )
+ set ( INCLUDES esminiLib.hpp ../../Modules/Controllers/vehicle.hpp )
+
+
++add_library ( ${TARGET}Static STATIC ${SOURCES} ${INCLUDES} )
+ add_library ( ${TARGET} SHARED ${SOURCES} ${INCLUDES} )
+
+ add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+@@ -35,19 +36,29 @@ endif (USE_OSI)
+
+ target_link_libraries (
+ 	${TARGET}
+-    PRIVATE PlayerBase
+-	PRIVATE ScenarioEngine
+-	PRIVATE RoadManager
+-	PRIVATE CommonMini
+-    PRIVATE Controllers
+-    PRIVATE ${osi_libs}
+-    PRIVATE ${sumo_libs}
+-	PRIVATE ${TIME_LIB}
+-    PRIVATE ${SOCK_LIB}
++    PUBLIC PlayerBase
++	PUBLIC ScenarioEngine
++	PUBLIC RoadManager
++	PUBLIC CommonMini
++    PUBLIC Controllers
++    PUBLIC ${osi_libs}
++    PUBLIC ${sumo_libs}
++	PUBLIC ${TIME_LIB}
++    PUBLIC ${SOCK_LIB}
+     ${viewer_libs}
+ )
++get_target_property(esmini_linked_libs "${TARGET}" LINK_LIBRARIES)
++target_link_libraries(${TARGET}Static PUBLIC ${esmini_linked_libs})
+
+ install ( TARGETS ${TARGET} DESTINATION "${INSTALL_DIRECTORY}")
++install ( TARGETS ${TARGET}Static DESTINATION "${INSTALL_DIRECTORY}")
++
++install (
++    TARGETS
++        PlayerBase ScenarioEngine RoadManager CommonMini Controllers
++
++    DESTINATION "${INSTALL_DIRECTORY}")  # only do it once, esminiRMLib is a subset
++
+ if (WIN32)
+   install ( TARGETS ${TARGET} RUNTIME DESTINATION "${INSTALL_DIRECTORY_CODE_EXAMPLES}")
+ else ()
+diff --git a/EnvironmentSimulator/Libraries/esminiRMLib/CMakeLists.txt b/EnvironmentSimulator/Libraries/esminiRMLib/CMakeLists.txt
+index 3326c6f5..077573a0 100644
+--- a/EnvironmentSimulator/Libraries/esminiRMLib/CMakeLists.txt
++++ b/EnvironmentSimulator/Libraries/esminiRMLib/CMakeLists.txt
+@@ -11,6 +11,7 @@ set ( SOURCES esminiRMLib.cpp )
+ set ( INCLUDES esminiRMLib.hpp )
+
+ add_library ( ${TARGET} SHARED ${SOURCES} ${INCLUDES} )
++add_library ( ${TARGET}Static STATIC ${SOURCES} ${INCLUDES} )
+
+ add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+
+@@ -22,6 +23,7 @@ target_link_libraries (
+ )
+
+ install ( TARGETS ${TARGET} DESTINATION "${INSTALL_DIRECTORY}")
++install ( TARGETS ${TARGET}Static DESTINATION "${INSTALL_DIRECTORY}")
+ if (WIN32)
+   install ( TARGETS ${TARGET} RUNTIME DESTINATION "${INSTALL_DIRECTORY_CODE_EXAMPLES}")
+ else ()
 diff --git a/EnvironmentSimulator/Unittest/ScenarioEngineDll_test.cpp b/EnvironmentSimulator/Unittest/ScenarioEngineDll_test.cpp
-index 5b5edb3..f24c99c 100644
+index 5b5edb33..f24c99c9 100644
 --- a/EnvironmentSimulator/Unittest/ScenarioEngineDll_test.cpp
 +++ b/EnvironmentSimulator/Unittest/ScenarioEngineDll_test.cpp
 @@ -332,7 +332,7 @@ TEST(GetOSIRoadLaneTest, lane_no_obj)

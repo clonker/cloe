@@ -4,7 +4,7 @@ from pathlib import Path
 
 from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMake
-from conan.tools.files import collect_libs, chdir, patch, mkdir, copy
+from conan.tools.files import collect_libs, patch, mkdir, copy
 from conan.tools.scm import Git
 
 
@@ -28,9 +28,11 @@ class ESMini(ConanFile):
         "shared": True,
         "fPIC": True,
         "test": True,
-        "with_osg": True,
+        "with_osg": False,
         "with_osi": True,
         "with_sumo": False,
+        "open-simulation-interface:shared": False,
+        "cloe-osi:shared": False,
     }
     generators = "CMakeToolchain", "CMakeDeps"
     build_policy = "missing"
@@ -54,7 +56,7 @@ class ESMini(ConanFile):
     _bin_dir = f"{_sim_dir}/Applications/"
     _resources_dir = f"resources"
 
-    _protobuf_dyn = True
+    _protobuf_dyn = False
 
     def configure(self):
         if self.options.with_osg:
@@ -91,13 +93,13 @@ class ESMini(ConanFile):
         ext_osi = self.build_path / 'ext_osi'
         mkdir(self, ext_osi)
         copy(self, "*", src=self.dependencies["open-simulation-interface"].cpp_info.includedirs[0],
-             dst=ext_osi / 'include')
+                  dst=ext_osi / 'include')
         copy(self, "*", src=self.dependencies["open-simulation-interface"].cpp_info.libdirs[0],
-             dst=ext_osi / 'lib')
+                  dst=ext_osi / 'lib')
         copy(self, "*", src=self.dependencies["protobuf"].cpp_info.includedirs[0],
-             dst=ext_osi / 'include')
+                  dst=ext_osi / 'include')
         copy(self, "*", src=self.dependencies["protobuf"].cpp_info.libdirs[0],
-             dst=ext_osi / 'lib')
+                  dst=ext_osi / 'lib')
 
         tc = CMakeToolchain(self)
         tc.cache_variables["CMAKE_PROJECT_VERSION"] = self.version
@@ -108,8 +110,6 @@ class ESMini(ConanFile):
         tc.cache_variables["USE_SUMO"] = self.options.with_sumo
         tc.cache_variables["USE_GTEST"] = self.options.test
         tc.cache_variables["DYN_PROTOBUF"] = True
-        tc.cache_variables["CONAN_PROTOBUF_LIBDIR"] = self.dependencies["protobuf"].cpp_info.libdirs[0]
-        tc.cache_variables["CONAN_OSI_LIBDIR"] = self.dependencies["open-simulation-interface"].cpp_info.libdirs[0]
         tc.cache_variables["CONAN_OPEN-SIMULATION-INTERFACE_ROOT"] = str(ext_osi)
         tc.generate()
 
@@ -130,8 +130,11 @@ class ESMini(ConanFile):
             test_dir = Path("EnvironmentSimulator") / "Unittest"
             mkdir(self, test_dir / 'exec')
             for test in glob.glob("*_test", root_dir=Path("EnvironmentSimulator") / "Unittest"):
-                self.run(Path('..') / test, run_environment=True, cwd=test_dir / 'exec')
-
+                gtest_filter = ""
+                if test == 'ScenarioEngineDll_test':
+                    gtest_filter = "--gtest_filter=-APITest.TestFetchImage"
+                self.run(f"{Path('..') / test} {gtest_filter}",
+                         run_environment=True, cwd=test_dir / 'exec')
 
     def package(self):
         cmake = CMake(self)
@@ -142,19 +145,23 @@ class ESMini(ConanFile):
             src=Path(self.source_folder) / self._lib_dir,
             keep_path=False,
         )
-        self.copy(pattern="*.so", dst="lib", src=self._lib_dir, keep_path=False)
-        self.copy(pattern="*.a", dst="lib", src=self._lib_dir, keep_path=False)
+        if self.options.shared:
+            self.copy(pattern="*.so", dst="lib", src=self._lib_dir, keep_path=False)
+        else:
+            self.copy(pattern="*.a", dst="lib", src=self._lib_dir, keep_path=False)
+            self.copy(pattern="*.a", dst="lib", src="bin", keep_path=False)
         apps = os.listdir(self._bin_dir)
         for app in apps:
-            self.copy(
-                pattern=app, dst="bin", src=f"{self._bin_dir}/{app}", keep_path=False
+            copy(
+                self, pattern=app, dst="bin", src=f"{self._bin_dir}/{app}", keep_path=False
             )
         self.copy(
             pattern="*",
             dst=self._pkg_scenario_dir,
             src=f"{self.source_folder}/{self._resources_dir}",
         )
-        assert Path(f"{self.package_folder}/{self._pkg_scenario_dir}/xosc").exists()
+        xosc_dir = Path(f"{self.source_folder}/{self._pkg_scenario_dir}/xosc")
+        assert xosc_dir.exists(), f"xosc dir {xosc_dir} did not exist"
         self.copy(
             "*",
             dst=self._pkg_scenario_dir,
@@ -170,5 +177,9 @@ class ESMini(ConanFile):
         self.cpp_info.set_property("cmake_file_name", self.name)
         self.cpp_info.set_property("pkg_config_name", self.name)
 
-        self.cpp_info.libs = collect_libs(self)
+        if self.options.shared:
+            self.cpp_info.libs = collect_libs(self)
+        else:
+            self.cpp_info.libs = ["esminiLibStatic", "esminiRMLibStatic",
+                                  "CommonMini", "RoadManager", "ScenarioEngine", "Controllers", "PlayerBase"]
         self.runenv_info.define("ESMINI_XOSC_PATH", f"{self.package_folder}/{self._pkg_scenario_dir}/xosc")

@@ -16,6 +16,9 @@ class CloeSimulatorESMini(ConanFile):
     }
     default_options = {
         "pedantic": True,
+        "esmini:shared": False,
+        "open-simulation-interface:shared": False,
+        "cloe-osi:shared": False,
     }
     generators = "CMakeDeps", "VirtualRunEnv"
     exports_sources = [
@@ -33,11 +36,13 @@ class CloeSimulatorESMini(ConanFile):
             self.version = git.run("describe --dirty=-dirty")[1:]
 
     def requirements(self):
-        self.requires("eigen/3.4.0")
-        self.requires(f"esmini/[~2.24.0]@cloe/stable")
+        self.requires("eigen/3.4.0", private=True)
+        self.requires(f"esmini/[~2.24.0]@cloe/stable", private=True)
         self.requires(f"cloe-runtime/{self.version}@cloe/develop")
         self.requires(f"cloe-models/{self.version}@cloe/develop")
         self.requires(f"cloe-osi/{self.version}@cloe/develop")
+        self.requires("protobuf/3.15.8", override=True, private=True)
+        self.requires("open-simulation-interface/3.3.1@cloe/stable", private=True)
 
     def build_requirements(self):
         self.test_requires("gtest/1.13.0")
@@ -74,6 +79,6 @@ class CloeSimulatorESMini(ConanFile):
         self.cpp_info.set_property("cmake_file_name", self.name)
         self.cpp_info.set_property("pkg_config_name", self.name)
 
-        if not self.in_local_cache: # editable mode
-            libdir = Path(self.build_folder) /  "lib"
+        if not self.in_local_cache:  # editable mode
+            libdir = Path(self.build_folder) / "lib"
             self.runenv_info.append_path("LD_LIBRARY_PATH", libdir)
