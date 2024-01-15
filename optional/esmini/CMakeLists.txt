@@ -16,6 +16,7 @@ cloe_add_plugin(
     OUTPUT_NAME simulator_esmini
     SOURCES
         src/esmini.cpp
+        src/esmini_lua_binding.cpp
     LINK_LIBRARIES
         cloe::runtime
         cloe::models

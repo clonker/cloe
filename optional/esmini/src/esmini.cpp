@@ -45,6 +45,7 @@
 #include "esmini_conf.hpp"    // for ESMiniConfiguration
 #include "esmini_logger.hpp"  // for esmini_logger()
 #include "esmini_vehicle.hpp"
+#include "esmini_lua_binding.hpp"
 
 namespace esmini {
 
@@ -131,6 +132,9 @@ class ESMiniSimulator : public cloe::Simulator {
     r.register_api_handler("/configuration",
                            cloe::HandlerType::BUFFERED,
                            cloe::handler::ToJson<ESMiniConfiguration>(&config_));
+    lua::exportSignals(
+        r.data_broker()
+    );
   }
 
   size_t num_vehicles() const final {
