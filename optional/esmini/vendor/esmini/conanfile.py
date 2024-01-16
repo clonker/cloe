@@ -28,7 +28,7 @@ class ESMini(ConanFile):
         "shared": True,
         "fPIC": True,
         "test": True,
-        "with_osg": False,
+        "with_osg": True,
         "with_osi": True,
         "with_sumo": False,
         "open-simulation-interface:shared": False,
@@ -181,5 +181,8 @@ class ESMini(ConanFile):
             self.cpp_info.libs = collect_libs(self)
         else:
             self.cpp_info.libs = ["esminiLibStatic", "esminiRMLibStatic",
-                                  "CommonMini", "RoadManager", "ScenarioEngine", "Controllers", "PlayerBase"]
+                                  "CommonMini", "RoadManager", "ScenarioEngine",
+                                  "Controllers", "PlayerBase"]
+            if self.options.with_osg:
+                self.cpp_info.libs += ["ViewerBase"]
         self.runenv_info.define("ESMINI_XOSC_PATH", f"{self.package_folder}/{self._pkg_scenario_dir}/xosc")

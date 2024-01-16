@@ -25,7 +25,7 @@
  *
  */
 
-#include <float.h>  // for DBL_MAX
+#include <cfloat>  // for DBL_MAX
 
 #include <cloe/component/lane_boundary.hpp>             // for LaneBoundary
 #include <cloe/component/lane_sensor_functional.hpp>    // for LaneSensorFilter

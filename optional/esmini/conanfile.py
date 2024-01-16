@@ -17,6 +17,7 @@ class CloeSimulatorESMini(ConanFile):
     default_options = {
         "pedantic": True,
         "esmini:shared": False,
+        "esmini:with_osg": False,
         "open-simulation-interface:shared": False,
         "cloe-osi:shared": False,
     }
@@ -40,7 +41,7 @@ class CloeSimulatorESMini(ConanFile):
         self.requires(f"esmini/[~2.24.0]@cloe/stable", private=True)
         self.requires(f"cloe-runtime/{self.version}@cloe/develop")
         self.requires(f"cloe-models/{self.version}@cloe/develop")
-        self.requires(f"cloe-osi/{self.version}@cloe/develop")
+        self.requires(f"cloe-osi/{self.version}@cloe/develop", private=True)
         self.requires("protobuf/3.15.8", override=True, private=True)
         self.requires("open-simulation-interface/3.3.1@cloe/stable", private=True)
 
