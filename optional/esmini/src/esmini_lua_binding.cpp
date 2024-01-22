@@ -28,44 +28,59 @@
 #include <string_view>
 
 namespace esmini::lua {
-void exportSignals(cloe::DataBroker &dataBroker) {
+void exportSignals(cloe::DataBroker &dataBroker, ESMiniVehicle& vehicle) {
+  const auto name = vehicle.name();
   cloe::utility::register_lua_types(dataBroker);
-
-  constexpr std::string_view vehicle {"Ego"};
+  cloe::utility::register_wheel_sensor(dataBroker, name, "fl", [&, val=cloe::Wheel{}]() mutable -> const cloe::Wheel& {
+    val=vehicle.get<cloe::WheelSensor>(cloe::CloeComponent::DEFAULT_WHEEL_SENSOR)->wheel_fl();
+    return val;
+  });
+  cloe::utility::register_wheel_sensor(dataBroker, name, "fr", [&, val=cloe::Wheel{}]() mutable -> const cloe::Wheel& {
+    val=vehicle.get<cloe::WheelSensor>(cloe::CloeComponent::DEFAULT_WHEEL_SENSOR)->wheel_fr();
+    return val;
+  });
+  cloe::utility::register_wheel_sensor(dataBroker, name, "rl", [&, val=cloe::Wheel{}]() mutable -> const cloe::Wheel& {
+    val=vehicle.get<cloe::WheelSensor>(cloe::CloeComponent::DEFAULT_WHEEL_SENSOR)->wheel_rl();
+    return val;
+  });
+  cloe::utility::register_wheel_sensor(dataBroker, name, "rr", [&, val=cloe::Wheel{}]() mutable -> const cloe::Wheel& {
+    val=vehicle.get<cloe::WheelSensor>(cloe::CloeComponent::DEFAULT_WHEEL_SENSOR)->wheel_rr();
+    return val;
+  });
 
   {
     using type = double;
-    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.acceleration", vehicle));
+    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.acceleration", name));
     signal->set_setter<type>([](const type& value) { /*todo*/ });
   }
 
   {
     using type = double;
-    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.steeringwheel.angle", vehicle));
+    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.steeringwheel.angle", name));
     signal->set_setter<type>([](const type& value) { /*todo*/ });
   }
 
   {
     using type = int8_t;
-    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.gearbox.selector", vehicle));
+    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.gearbox.selector", name));
     signal->set_setter<type>([](const type& value) { /*todo*/ });
   }
 
   {
     using type = double;
-    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.gaspedal.position", vehicle));
+    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.gaspedal.position", name));
     signal->set_setter<type>([](const type& value) { /*todo*/ });
   }
 
   {
     using type = double;
-    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.brakepedal.position", vehicle));
+    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.brakepedal.position", name));
     signal->set_setter<type>([](const type& value) { /*todo*/ });
   }
 
   {
     using type = std::tuple<double, double>;
-    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.front_wheel_angle", vehicle));
+    auto signal = dataBroker.declare<type>(fmt::format("vehicles.{}.actuation.front_wheel_angle", name));
     signal->set_setter<type>([](const type& value) { /*todo*/ });
   }
 

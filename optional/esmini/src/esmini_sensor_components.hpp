@@ -19,9 +19,15 @@
  * \file esmini_sensor_components.hpp
  */
 
+#pragma once
+
 #include <cloe/component/ego_sensor.hpp>     // for EgoSensor
 #include <cloe/component/lane_sensor.hpp>    // for LaneBoundarySensor
 #include <cloe/component/object_sensor.hpp>  // for ObjectSensor
+#include <cloe/component/powertrain_sensor.hpp>  // for PowerTrainSensor
+#include <cloe/component/steering_sensor.hpp>  // for SteeringSensor
+#include <cloe/component/brake_sensor.hpp>  // for BrakeSensor
+#include <cloe/component/wheel_sensor.hpp>  // for WheelSensor
 
 #include "esmini_world_data.hpp"  // for ESMiniEnvData
 
@@ -55,6 +61,48 @@ class ESMiniObjectSensor : public cloe::ObjectSensor {
   const cloe::Frustum& frustum() const override { return env_data_->get_frustum(); }
   const Eigen::Isometry3d& mount_pose() const override { return env_data_->get_mount_pose(); }
 
+ private:
+  std::shared_ptr<ESMiniEnvData> env_data_;
+};
+
+class ESMiniPowerTrainSensor : public cloe::PowertrainSensor {
+ public:
+  explicit ESMiniPowerTrainSensor(std::shared_ptr<ESMiniEnvData> data)
+      : PowertrainSensor("esmini/powertrain_sensor"), env_data_(std::move(data)) {}
+  ~ESMiniPowerTrainSensor() noexcept override = default;
+  [[nodiscard]] double pedal_position_acceleration() const override { return 0; }
+  [[nodiscard]] int gear_transmission() const override { return 0; }
+ private:
+  std::shared_ptr<ESMiniEnvData> env_data_;
+};
+
+class ESMiniSteeringSensor : public cloe::SteeringSensor {
+ public:
+  explicit ESMiniSteeringSensor(std::shared_ptr<ESMiniEnvData> data)
+      : SteeringSensor("esmini/steering_sensor"), env_data_(std::move(data)) {}
+  [[nodiscard]] double curvature() const override { return 0; }
+ private:
+  std::shared_ptr<ESMiniEnvData> env_data_;
+};
+
+class ESMiniBrakeSensor : public cloe::BrakeSensor {
+ public:
+  explicit ESMiniBrakeSensor(std::shared_ptr<ESMiniEnvData> data)
+      : BrakeSensor("esmini/brake_sensor"), env_data_(std::move(data)) {}
+  [[nodiscard]] double pedal_position_brake() const override { return 0; }
+
+ private:
+  std::shared_ptr<ESMiniEnvData> env_data_;
+};
+
+class ESMiniWheelSensor : public cloe::WheelSensor {
+ public:
+  explicit ESMiniWheelSensor(std::shared_ptr<ESMiniEnvData> data)
+      : WheelSensor("esmini/wheel_sensor"), env_data_(std::move(data)) {}
+  [[nodiscard]] cloe::Wheel wheel_fl() const override { return cloe::Wheel{ 0, 0, 0 }; }
+  [[nodiscard]] cloe::Wheel wheel_fr() const override { return cloe::Wheel{ 0, 0, 0 }; }
+  [[nodiscard]] cloe::Wheel wheel_rl() const override { return cloe::Wheel{ 0, 0, 0 }; }
+  [[nodiscard]] cloe::Wheel wheel_rr() const override { return cloe::Wheel{ 0, 0, 0 }; }
  private:
   std::shared_ptr<ESMiniEnvData> env_data_;
 };

@@ -133,7 +133,7 @@ class ESMiniSimulator : public cloe::Simulator {
                            cloe::HandlerType::BUFFERED,
                            cloe::handler::ToJson<ESMiniConfiguration>(&config_));
     lua::exportSignals(
-        r.data_broker()
+        r.data_broker(), *vehicles_[0]
     );
   }
 
@@ -148,12 +148,8 @@ class ESMiniSimulator : public cloe::Simulator {
   }
 
   std::shared_ptr<cloe::Vehicle> get_vehicle(const std::string& key) const final {
-    for (const auto& v : vehicles_) {
-      if (v->name() == key) {
-        return v;
-      }
-    }
-    return nullptr;
+    const auto it = std::find_if(begin(vehicles_), end(vehicles_), [&](const auto &v) { return v->name() == key; });
+    return it != end(vehicles_) ? *it : nullptr;
   }
 
   cloe::Duration process(const cloe::Sync& sync) final {

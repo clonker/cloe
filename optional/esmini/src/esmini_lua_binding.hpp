@@ -21,10 +21,12 @@
 */
 #pragma once
 
+#include "esmini_vehicle.hpp"
+
 #include <cloe/data_broker.hpp>
 
 namespace esmini::lua {
 
-void exportSignals(cloe::DataBroker &dataBroker);
+void exportSignals(cloe::DataBroker &dataBroker, ESMiniVehicle& vehicle);
 
 }

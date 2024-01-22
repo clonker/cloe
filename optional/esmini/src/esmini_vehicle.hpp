@@ -25,15 +25,22 @@
  *
  */
 
-#include <cfloat>  // for DBL_MAX
+#pragma once
 
-#include <cloe/component/lane_boundary.hpp>             // for LaneBoundary
-#include <cloe/component/lane_sensor_functional.hpp>    // for LaneSensorFilter
-#include <cloe/component/object_sensor_functional.hpp>  // for ObjectSensorFilter
 #include "esmini_ego_control.hpp"                       // for ESMiniEgoControl
 #include "esmini_osi_sensor.hpp"                        // for ESMiniOsiSensor
 #include "esmini_sensor_components.hpp"  // for ESMiniEgoSensor, ESMiniObjectSensor, ..
 #include "esmini_world_data.hpp"         // for ESMiniEnvData
+#include "esmini_conf.hpp"
+
+#include <cloe/component/lane_boundary.hpp>             // for LaneBoundary
+#include <cloe/component/lane_sensor_functional.hpp>    // for LaneSensorFilter
+#include <cloe/component/object_sensor_functional.hpp>  // for ObjectSensorFilter
+
+#include <cloe/models.hpp>
+#include <cloe/vehicle.hpp>
+
+#include <cfloat>  // for DBL_MAX
 
 namespace esmini {
 
@@ -54,14 +61,27 @@ class ESMiniVehicle : public cloe::Vehicle {
     osi_gnd_truth->set_name(name + "_osi_sensor");
 
     // Add ego sensor
+    // todo this proooooooooobably leaks
     this->new_component(new ESMiniEgoSensor{id, osi_gnd_truth},
                         cloe::CloeComponent::GROUNDTRUTH_EGO_SENSOR,
                         cloe::CloeComponent::DEFAULT_EGO_SENSOR);
-
     // Add object sensor
     this->new_component(new ESMiniObjectSensor{osi_gnd_truth},
                         cloe::CloeComponent::GROUNDTRUTH_WORLD_SENSOR,
                         cloe::CloeComponent::DEFAULT_WORLD_SENSOR);
+    this->new_component(new ESMiniPowerTrainSensor{osi_gnd_truth},
+                        cloe::CloeComponent::GROUNDTRUTH_POWERTRAIN_SENSOR,
+                        cloe::CloeComponent::DEFAULT_POWERTRAIN_SENSOR);
+    this->new_component(new ESMiniSteeringSensor{osi_gnd_truth},
+                        cloe::CloeComponent::GROUNDTRUTH_STEERING_SENSOR,
+                        cloe::CloeComponent::DEFAULT_STEERING_SENSOR);
+    this->new_component(new ESMiniBrakeSensor{osi_gnd_truth},
+                        cloe::CloeComponent::GROUNDTRUTH_BRAKE_SENSOR,
+                        cloe::CloeComponent::DEFAULT_BRAKE_SENSOR);
+    this->new_component(new ESMiniWheelSensor{osi_gnd_truth},
+                        cloe::CloeComponent::GROUNDTRUTH_WHEEL_SENSOR,
+                        cloe::CloeComponent::DEFAULT_WHEEL_SENSOR);
+
 
     // Only keep object data within configured filter distance.
     auto filter_fct_obj = [fdist = config.filter_dist](const cloe::Object& obj) {

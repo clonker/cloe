@@ -38,7 +38,7 @@
 namespace esmini {
 
 // TODO(tobias): This should eventually be fixed in ESMini.
-void fix_esmini_osi_ground_truth(osi3::GroundTruth& gt) {
+inline void fix_esmini_osi_ground_truth(osi3::GroundTruth& gt) {
   // Fix moving objects.
   for (int i = 0; i < gt.moving_object_size(); ++i) {
     osi3::MovingObject* obj = gt.mutable_moving_object(i);
@@ -179,7 +179,9 @@ class ESMiniOsiSensor : public cloeosi::OsiMsgHandler, public ESMiniEnvData {
 
   void store_lane_boundary(const cloe::LaneBoundary& lb) override { lanes_[lb.id] = lb; }
 
-  void store_ego_object(std::shared_ptr<cloe::Object> ego_obj) override { ego_object_ = ego_obj; }
+  void store_ego_object(std::shared_ptr<cloe::Object> ego_obj) override {
+    ego_object_ = ego_obj;
+  }
 
   void store_sensor_meta_data(const Eigen::Vector3d& bbcenter_to_veh_origin,
                               const Eigen::Vector3d& ego_dimensions) override {

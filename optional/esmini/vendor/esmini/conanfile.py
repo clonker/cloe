@@ -28,7 +28,7 @@ class ESMini(ConanFile):
         "shared": True,
         "fPIC": True,
         "test": True,
-        "with_osg": True,
+        "with_osg": False,  # todo!
         "with_osi": True,
         "with_sumo": False,
         "open-simulation-interface:shared": False,
