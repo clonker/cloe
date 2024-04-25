@@ -112,5 +112,9 @@ std::vector<std::string> PythonSimulationDriver::available_signals() const {
   }
   return result;
 }
+void PythonSimulationDriver::stop(const cloe::Sync& sync) {
+  const auto ptr = trigger_factory().make_action(cloe::Conf{nlohmann::json("stop")});
+  coordinator_->execute_action(sync, *ptr);
+}
 
 }

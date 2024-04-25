@@ -55,7 +55,7 @@ class TestRunner:
             try:
                 next(self._the_test_gen)
             except StopIteration:
-                pass
+                self._stop_simulation()
             return CallbackResult.Ok
 
         self.driver.add_trigger(self._sync, "wait_until_callback", {"name": "time", "time": seconds},
@@ -68,7 +68,7 @@ class TestRunner:
                 try:
                     next(self._the_test_gen)
                 except StopIteration:
-                    ...
+                    self._stop_simulation()
                 return CallbackResult.Unpin
             else:
                 return CallbackResult.Ok
@@ -89,6 +89,9 @@ class TestRunner:
     @property
     def signals(self):
         return self.driver.signals()
+
+    def _stop_simulation(self):
+        self.driver.stop(self._sync)
 
     def __call__(self, sync):
         print("available signals", self.driver.available_signals)

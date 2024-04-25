@@ -83,6 +83,7 @@ PYBIND11_MODULE(_cloe_bindings, m) {
       return &self.data_broker_binding()->signals();
     }, py::return_value_policy::reference_internal);
     clazz.def_property_readonly("available_signals", &cloe::py::PythonSimulationDriver::available_signals);
+    clazz.def("stop", &cloe::py::PythonSimulationDriver::stop);
   }
   {
     py::class_<engine::Simulation> sim (m, "Simulation");

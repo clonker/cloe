@@ -44,6 +44,8 @@ class PythonSimulationDriver final : public cloe::SimulationDriver {
                    const nlohmann::json &eventDescription,
                    const CallbackFunction &action, bool sticky);
 
+  void stop(const cloe::Sync& sync);
+
   [[nodiscard]] std::vector<std::string> available_signals() const;
 
   pybind11::module_ &extension_module();
