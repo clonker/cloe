@@ -58,7 +58,9 @@ class TestRunner:
                 self._stop_simulation()
             return CallbackResult.Ok
 
-        self.driver.add_trigger(self._sync, "wait_until_callback", {"name": "time", "time": seconds},
+        until = self._sync.time + seconds
+        assert until > self._sync.time
+        self.driver.add_trigger(self._sync, "wait_until_callback", {"name": "time", "time": until},
                                 wait_until_callback, False)
 
     def wait_until(self, condition):
@@ -72,7 +74,7 @@ class TestRunner:
                 return CallbackResult.Unpin
             else:
                 return CallbackResult.Ok
-
+            
         self.driver.add_trigger(self._sync, "wait_for_callback", {"name": "loop"}, wait_for_callback, True)
 
     def check_eq(self, actual, desired, err_msg=''):
