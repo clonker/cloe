@@ -58,9 +58,9 @@ class TestRunner:
                 self._stop_simulation()
             return CallbackResult.Ok
 
-        until = self._sync.time + seconds
+        until = self._sync.time + timedelta(seconds=seconds)
         assert until > self._sync.time
-        self.driver.add_trigger(self._sync, "wait_until_callback", {"name": "time", "time": until},
+        self.driver.add_trigger(self._sync, "wait_until_callback", {"name": "time", "time": int(until.total_seconds())},
                                 wait_until_callback, False)
 
     def wait_until(self, condition):
